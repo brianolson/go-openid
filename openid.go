@@ -6,16 +6,19 @@ import (
 	"regexp"
 	"os"
 	"bytes"
-
+	"http"
+	
 	)
 
 
 type OpenID struct {
 	Identifier string
-	//Params map[string] string
+	Params map[string] string
 	RPUrl string
 	Hostname string
 	Request string
+	Realm string
+	ReturnTo string
 }
 
 func (o *OpenID) normalizeIdentifier() {
@@ -42,12 +45,51 @@ func Yadis(url string) string{
 	return uri
 }
 
+func mapToUrlEnc (params map[string] string) string {
+	url := ""
+	for k,v := range (params) {
+		url = fmt.Sprintf("%s&%s=%s",url,k,v)
+	}
+	//return http.URLEscape(url[1:])Aa
+	return url[1:]
+}
+
+func urlEncToMap (url string) map[string] string {
+	// We don't know how elements are in the URL so we create a list first and push elements on it
+	pmap := make(map[string] string)
+	url,_ = http.URLUnescape(url)
+	var start, end, eq, length int
+	length = len(url)
+	start = 0
+	for start < length && url[start] != '?' { start ++ }
+	end = start
+	for end < length {
+		start = end + 1
+		eq = start
+		for eq < length && url[eq] != '=' { eq++ }
+		end = eq + 1
+		for end < length && url[end] != '&' { end++ }
+	
+		fmt.Printf("Trouve: %s : %s\n", url[start:eq], url[eq+1:end])
+		pmap[url[start:eq]] = url[eq+1:end]
+	}
+	return pmap
+}
+
 func (o *OpenID) GetUrl() string {
 	o.normalizeIdentifier()
 
 	URI := Yadis(o.Identifier)
-	params := fmt.Sprintf("?openid.ns=http://specs.openid.net/auth/2.0&openid.claimed_id=http://specs.openid.net/auth/2.0/identifier_select&openid.identity=http://specs.openid.net/auth/2.0/identifier_select&openid.return_to=http://157.159.46.13:8083/go/loginCheck&openid.realm=http://157.159.46.13:8083/&openid.mode=checkid_setup")
-	return fmt.Sprintf("%s%s",URI,params)
+	params := map[string] string {
+		"openid.ns": "http://specs.openid.net/auth/2.0",
+		"openid.mode" : "checkid_setup",
+		"openid.return_to": fmt.Sprintf("%s%s", o.Realm, o.ReturnTo),
+		"openid.realm": o.Realm,
+		"openid.claimed_id" : "http://specs.openid.net/auth/2.0/identifier_select",
+		"openid.identity" : "http://specs.openid.net/auth/2.0/identifier_select",
+
+	}
+	return fmt.Sprintf("%s?%s",URI, mapToUrlEnc(params))
 }
 
 func (o *OpenID) Verify() (grant bool, err os.Error) {
@@ -75,47 +117,22 @@ func (o *OpenID) Verify() (grant bool, err os.Error) {
 	return
 }
 
+func (o *OpenID) ParseRPUrl(url string) {
+	o.Params = urlEncToMap(url)
+}
 
 func (o *OpenID) VerifyDirect() (grant bool, err os.Error) {
 	grant = false
 	err = nil
 
-	//o.Params["openid.mode"] = "check_authentication"
+	o.Params["openid.mode"] = "check_authentication"
 
-	// Create the new post
-	// Copy everything exept for openid.mode
-	params := "openid.mode=check_authentication"
-	url := ""
-
-	var start, end, eq, length int
-	length = len(o.RPUrl)
-	start = 0
-	for start < length && o.RPUrl[start] != '?' { start ++ }
-	end = start
-	for end < length {
-		start = end + 1
-		eq = start
-		for eq < length && o.RPUrl[eq] != '=' { eq++ }
-		end = eq + 1
-		for end < length && o.RPUrl[end] != '&' { end++ }
-	
-		fmt.Printf("Trouve: %s : %s\n", o.RPUrl[start:eq], o.RPUrl[eq+1:end])
-		if o.RPUrl[start:eq] != "openid.mode" {
-			params = fmt.Sprintf("%s&%s=%s", params, o.RPUrl[start:eq], o.RPUrl[eq+1:end])
-		}
-		if o.RPUrl[start:eq] == "openid.op_endpoint" {
-			url = o.RPUrl[eq+1:end]
-		}
-	}
-
-	
-	fmt.Printf("url: %s\nparams: %s\n", url, params)
-	fmt.Printf("\n")
-	// We can now send the direct request for verification and check the result
 	headers := map[string] string {
 		"Content-Type" : "application/x-www-form-urlencoded",
 	}
-	r,error := post(url, headers, bytes.NewBuffer([]byte(params)))
+	r,error := post(o.Params["openid.op_endpoint"],
+		headers,
+		bytes.NewBuffer([]byte(mapToUrlEnc(o.Params))))
 	if error != nil {
 		fmt.Printf("erreur: %s\n", error.String())
 		err = error
