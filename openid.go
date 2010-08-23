@@ -7,7 +7,6 @@ import (
 	"os"
 	"bytes"
 	"http"
-	
 	)
 
 
@@ -22,28 +21,15 @@ type OpenID struct {
 }
 
 func (o *OpenID) normalizeIdentifier() {
+	match,_ := regexp.MatchString("https?://", o.Identifier)
+	if ! match {
+		o.Identifier = fmt.Sprintf("http://%s",o.Identifier)
+	}
+
 	return
 
 }
 
-func Yadis(url string) string{
-
-	r, err := get (url, nil)
-	if (err != nil) { return "" }
-
-	var buffer = make([]byte,1024)
-	io.ReadFull(r.Body, buffer)
-	
-	URIRegex := regexp.MustCompile("<URI>.*</URI>")
-	uris := URIRegex.MatchStrings(string(buffer))
-	if len(uris) < 1 {
-		return ""
-	}
-	
-	uri := uris[0][5:len(uris[0])-6]
-	fmt.Printf("%s\n",uri)
-	return uri
-}
 
 func mapToUrlEnc (params map[string] string) string {
 	url := ""
@@ -80,6 +66,9 @@ func (o *OpenID) GetUrl() string {
 	o.normalizeIdentifier()
 
 	URI := Yadis(o.Identifier)
+	if URI == "" {
+		return ""
+	}
 	params := map[string] string {
 		"openid.ns": "http://specs.openid.net/auth/2.0",
 		"openid.mode" : "checkid_setup",
@@ -130,6 +119,7 @@ func (o *OpenID) VerifyDirect() (grant bool, err os.Error) {
 	headers := map[string] string {
 		"Content-Type" : "application/x-www-form-urlencoded",
 	}
+	fmt.Printf("Verification: %s\n",o.Params["openid.op_endpoint"])
 	r,error := post(o.Params["openid.op_endpoint"],
 		headers,
 		bytes.NewBuffer([]byte(mapToUrlEnc(o.Params))))
