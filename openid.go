@@ -7,11 +7,21 @@ import (
 	"os"
 	"bytes"
 	"http"
+	"strings"
 	)
 
+const (
+	_ = iota
+	IdentifierXRI
+	IdentifierURL
+)
 
 type OpenID struct {
-	Identifier string
+	Identifier string  // Discovery
+	IdentifierType int // Discovery
+	OPEndPoint string  // Discovery
+	ClaimedIdentifier string // Discovery
+	OPLocalIdentifier string // Discovery
 	Params map[string] string
 	RPUrl string
 	Hostname string
@@ -20,16 +30,52 @@ type OpenID struct {
 	ReturnTo string
 }
 
-func (o *OpenID) normalizeIdentifier() {
-	match,_ := regexp.MatchString("https?://", o.Identifier)
-	if ! match {
-		o.Identifier = fmt.Sprintf("http://%s",o.Identifier)
+func (o *OpenID) normalization() {
+	//1.  If the user's input starts with the "xri://" prefix, it MUST be stripped off, so that XRIs are used in the canonical form.
+	if strings.HasPrefix(o.Identifier, "xri://") {
+		o.Identifier = o.Identifier[6:]
 	}
 
-	return
+	// 2. If the first character of the resulting string is an XRI Global Context Symbol ("=", "@", "+", "$", "!") or "(", as defined in Section 2.2.1 of [XRI_Syntax_2.0] (Reed, D. and D. McAlpin, “Extensible Resource Identifier (XRI) Syntax V2.0,” .), then the input SHOULD be treated as an XRI.
+	if o.Identifier[0] == '=' || o.Identifier[0] == '@' || o.Identifier[0] == '+' || o.Identifier[0] == '$' || o.Identifier[0] == '!'  {
+		o.IdentifierType = IdentifierXRI
+		fmt.Printf("It is an XRI\n")
+		return
+	}
 
+	// 3. Otherwise, the input SHOULD be treated as an http URL; if it does not include a "http" or "https" scheme, the Identifier MUST be prefixed with the string "http://". If the URL contains a fragment part, it MUST be stripped off together with the fragment delimiter character "#". See Section 11.5.2 (HTTP and HTTPS URL Identifiers) for more information.
+	o.IdentifierType = IdentifierURL
+	if ! strings.HasPrefix(o.Identifier, "http://") && ! strings.HasPrefix(o.Identifier, "https://") {
+		o.Identifier = "http://" + o.Identifier
+	}
+
+	// 4. URL Identifiers MUST then be further normalized by both following redirects when retrieving their content and finally applying the rules in Section 6 of [RFC3986] (Berners-Lee, T., “Uniform Resource Identifiers (URI): Generic Syntax,” .) to the final destination URL. This final URL MUST be noted by the Relying Party as the Claimed Identifier and be used when requesting authentication (Requesting Authentication).
 }
 
+func (o *OpenID) discovery() {
+	//1.  If the identifier is an XRI, [XRI_Resolution_2.0]  (Wachob, G., Reed, D., Chasen, L., Tan, W., and S. Churchill, “Extensible Resource Identifier (XRI) Resolution V2.0 - Committee Draft 02,” .)  will yield an XRDS document that contains the necessary information. It should also be noted that Relying Parties can take advantage of XRI Proxy Resolvers, such as the one provided by XDI.org at http://www.xri.net. This will remove the need for the RPs to perform XRI Resolution locally.
+	if o.IdentifierType == IdentifierXRI {
+		fmt.Printf("XRI Discovery not implemented\n")
+	}
+
+	//2. If it is a URL, the Yadis protocol (Miller, J., “Yadis Specification 1.0,” .) [Yadis] SHALL be first attempted. If it succeeds, the result is again an XRDS document.
+	if o.IdentifierType == IdentifierURL {
+		r := Yadis(o.Identifier)
+		o.ParseXRDS(r)
+	}
+
+	//3. If the Yadis protocol fails and no valid XRDS document is retrieved, or no Service Elements (OpenID Service Elements) are found in the XRDS document, the URL is retrieved and HTML-Based discovery (HTML-Based Discovery) SHALL be attempted.
+	// Not Yet implemented
+
+
+
+	// If the end user entered an OP Identifier, there is no Claimed Identifier. For the purposes of making OpenID Authentication requests, the value "http://specs.openid.net/auth/2.0/identifier_select" MUST be used as both the Claimed Identifier and the OP-Local Identifier when an OP Identifier is entered.
+	if o.OPLocalIdentifier == "" {
+		fmt.Printf("Set identifier_select\n")
+		o.OPLocalIdentifier = "http://specs.openid.net/auth/2.0/identifier_select"
+		o.ClaimedIdentifier = "http://specs.openid.net/auth/2.0/identifier_select"
+	}
+}
 
 func mapToUrlEnc (params map[string] string) string {
 	url := ""
@@ -63,22 +109,27 @@ func urlEncToMap (url string) map[string] string {
 }
 
 func (o *OpenID) GetUrl() string {
-	o.normalizeIdentifier()
+	o.normalization()
+	o.discovery()
 
-	URI := Yadis(o.Identifier)
-	if URI == "" {
-		return ""
-	}
+
 	params := map[string] string {
 		"openid.ns": "http://specs.openid.net/auth/2.0",
 		"openid.mode" : "checkid_setup",
-		"openid.return_to": fmt.Sprintf("%s%s", o.Realm, o.ReturnTo),
-		"openid.realm": o.Realm,
-		"openid.claimed_id" : "http://specs.openid.net/auth/2.0/identifier_select",
-		"openid.identity" : "http://specs.openid.net/auth/2.0/identifier_select",
-
 	}
-	return fmt.Sprintf("%s?%s",URI, mapToUrlEnc(params))
+	if o.Realm != "" {
+		params["openid.realm"] = o.Realm
+	}
+	if o.Realm != "" && o.ReturnTo != "" {
+		params["openid.return_to"] = o.Realm + o.ReturnTo
+	}
+	if o.OPLocalIdentifier != "" {
+		params["openid.identity"] = o.OPLocalIdentifier
+	}
+	if o.ClaimedIdentifier != "" {
+		params["openid.claimed_id"] = o.ClaimedIdentifier
+	}
+	return o.OPEndPoint + "?" + mapToUrlEnc(params)
 }
 
 func (o *OpenID) Verify() (grant bool, err os.Error) {
