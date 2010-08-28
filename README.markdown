@@ -4,7 +4,19 @@ Go-OpenID
 About
 -----
 
-Go-OpenID is an attempt to implement OpenID in Golang.
+Go-OpenID is an implementation of OpenID in Golang.
+
+For now, the implementation does not manage XRI identifier, and can only check authentication with a direct request.
+
+Here are the specifications used:
+
+* http://openid.net/specs/openid-authentication-2_0.html
+* http://yadis.org/wiki/Yadis_1.0_%28HTML%29
+
+Install
+-------
+
+	git clone http://github.com/fduraffourg/go-openid.git && cd go-openid && make && make install
 
 Usage
 -----
