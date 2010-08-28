@@ -60,7 +60,10 @@ func (o *OpenID) discovery() {
 
 	//2. If it is a URL, the Yadis protocol (Miller, J., “Yadis Specification 1.0,” .) [Yadis] SHALL be first attempted. If it succeeds, the result is again an XRDS document.
 	if o.IdentifierType == IdentifierURL {
-		r := Yadis(o.Identifier)
+		r,err := Yadis(o.Identifier)
+		if err != nil {
+			return
+		}
 		o.ParseXRDS(r)
 	}
 
