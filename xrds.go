@@ -42,7 +42,7 @@ func (o *OpenID) ParseXRDS(r io.Reader){
 	} else if StringTableContains(XRDSI.Type, "http://specs.openid.net/auth/2.0/signon") {
 		fmt.Printf("Claimed Identifier Element found\n")
 		o.OPEndPoint = XRDSI.URI
-		o.OPLocalIdentifier = XRDSI.LocalID
+		o.ClaimedIdentifier = XRDSI.LocalID
 	}
 }
 

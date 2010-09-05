@@ -73,7 +73,7 @@ func (o *OpenID) discovery() {
 
 
 	// If the end user entered an OP Identifier, there is no Claimed Identifier. For the purposes of making OpenID Authentication requests, the value "http://specs.openid.net/auth/2.0/identifier_select" MUST be used as both the Claimed Identifier and the OP-Local Identifier when an OP Identifier is entered.
-	if o.OPLocalIdentifier == "" {
+	if o.ClaimedIdentifier == "" {
 		fmt.Printf("Set identifier_select\n")
 		o.OPLocalIdentifier = "http://specs.openid.net/auth/2.0/identifier_select"
 		o.ClaimedIdentifier = "http://specs.openid.net/auth/2.0/identifier_select"
@@ -126,11 +126,13 @@ func (o *OpenID) GetUrl() string {
 	if o.Realm != "" && o.ReturnTo != "" {
 		params["openid.return_to"] = o.Realm + o.ReturnTo
 	}
-	if o.OPLocalIdentifier != "" {
-		params["openid.identity"] = o.OPLocalIdentifier
-	}
 	if o.ClaimedIdentifier != "" {
 		params["openid.claimed_id"] = o.ClaimedIdentifier
+		if o.ClaimedIdentifier != "" {
+			params["openid.identity"] = o.OPLocalIdentifier
+		} else {
+			params["openid.identity"] = o.ClaimedIdentifier
+		}
 	}
 	return o.OPEndPoint + "?" + mapToUrlEnc(params)
 }
