@@ -128,7 +128,7 @@ func (o *OpenID) GetUrl() string {
 	}
 	if o.ClaimedIdentifier != "" {
 		params["openid.claimed_id"] = o.ClaimedIdentifier
-		if o.ClaimedIdentifier != "" {
+		if o.OPLocalIdentifier != "" {
 			params["openid.identity"] = o.OPLocalIdentifier
 		} else {
 			params["openid.identity"] = o.ClaimedIdentifier
