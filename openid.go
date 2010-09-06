@@ -52,17 +52,17 @@ func (o *OpenID) normalization() {
 	// 4. URL Identifiers MUST then be further normalized by both following redirects when retrieving their content and finally applying the rules in Section 6 of [RFC3986] (Berners-Lee, T., “Uniform Resource Identifiers (URI): Generic Syntax,” .) to the final destination URL. This final URL MUST be noted by the Relying Party as the Claimed Identifier and be used when requesting authentication (Requesting Authentication).
 }
 
-func (o *OpenID) discovery() {
+func (o *OpenID) discovery() os.Error {
 	//1.  If the identifier is an XRI, [XRI_Resolution_2.0]  (Wachob, G., Reed, D., Chasen, L., Tan, W., and S. Churchill, “Extensible Resource Identifier (XRI) Resolution V2.0 - Committee Draft 02,” .)  will yield an XRDS document that contains the necessary information. It should also be noted that Relying Parties can take advantage of XRI Proxy Resolvers, such as the one provided by XDI.org at http://www.xri.net. This will remove the need for the RPs to perform XRI Resolution locally.
 	if o.IdentifierType == IdentifierXRI {
-		fmt.Printf("XRI Discovery not implemented\n")
+		fmt.Printf("XRI Discovery not implemented yet\n")
 	}
 
 	//2. If it is a URL, the Yadis protocol (Miller, J., “Yadis Specification 1.0,” .) [Yadis] SHALL be first attempted. If it succeeds, the result is again an XRDS document.
 	if o.IdentifierType == IdentifierURL {
 		r,err := Yadis(o.Identifier)
 		if err != nil {
-			return
+			return err
 		}
 		o.ParseXRDS(r)
 	}
@@ -78,6 +78,8 @@ func (o *OpenID) discovery() {
 		o.OPLocalIdentifier = "http://specs.openid.net/auth/2.0/identifier_select"
 		o.ClaimedIdentifier = "http://specs.openid.net/auth/2.0/identifier_select"
 	}
+
+	return nil
 }
 
 func mapToUrlEnc (params map[string] string) string {
@@ -85,14 +87,13 @@ func mapToUrlEnc (params map[string] string) string {
 	for k,v := range (params) {
 		url = fmt.Sprintf("%s&%s=%s",url,k,v)
 	}
-	//return http.URLEscape(url[1:])Aa
 	return url[1:]
 }
 
 func urlEncToMap (url string) map[string] string {
 	// We don't know how elements are in the URL so we create a list first and push elements on it
 	pmap := make(map[string] string)
-	url,_ = http.URLUnescape(url)
+	//url,_ = http.URLUnescape(url)
 	var start, end, eq, length int
 	length = len(url)
 	start = 0
@@ -111,9 +112,10 @@ func urlEncToMap (url string) map[string] string {
 	return pmap
 }
 
-func (o *OpenID) GetUrl() string {
+func (o *OpenID) GetUrl() (string, os.Error) {
 	o.normalization()
-	o.discovery()
+	err := o.discovery()
+	if err != nil {	return "", err }
 
 
 	params := map[string] string {
@@ -134,7 +136,7 @@ func (o *OpenID) GetUrl() string {
 			params["openid.identity"] = o.ClaimedIdentifier
 		}
 	}
-	return o.OPEndPoint + "?" + mapToUrlEnc(params)
+	return o.OPEndPoint + "?" + mapToUrlEnc(params), nil
 }
 
 func (o *OpenID) Verify() (grant bool, err os.Error) {
@@ -175,8 +177,9 @@ func (o *OpenID) VerifyDirect() (grant bool, err os.Error) {
 	headers := map[string] string {
 		"Content-Type" : "application/x-www-form-urlencoded",
 	}
-	fmt.Printf("Verification: %s\n",o.Params["openid.op_endpoint"])
-	r,error := post(o.Params["openid.op_endpoint"],
+	url,_ := http.URLUnescape(o.Params["openid.op_endpoint"])
+	fmt.Printf("Verification: %s\nParams: %s\n",url, mapToUrlEnc(o.Params))
+	r,error := post(url,
 		headers,
 		bytes.NewBuffer([]byte(mapToUrlEnc(o.Params))))
 	if error != nil {
@@ -198,10 +201,4 @@ func (o *OpenID) VerifyDirect() (grant bool, err os.Error) {
 	}
 
 	return
-}
-
-
-func MExists(datas map[string] string, index string) bool {
-	_, present := datas[index]
-	return present
 }
