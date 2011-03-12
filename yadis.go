@@ -1,14 +1,97 @@
+// Copyright 2010 Florian Duraffourg. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 package openid
 
 import (
-	"io"
-	"fmt"
 	"os"
+	"http"
 	"xml"
+	"fmt"
+	"io"
+	"bytes"
 	"strings"
 )
 
-func searchHTMLMeta(r io.Reader) (string, os.Error) {
+
+func Yadis(ID string) (io.Reader, os.Error) {
+	r, err := YadisRequest(ID, "GET")
+	if (err != nil || r == nil) {
+		return nil, err
+	}
+
+	var contentType = r.Header.Get("Content-Type")
+
+	// If it is an XRDS document, return the Reader
+	if strings.HasPrefix(contentType, "application/xrds+xml") {
+		return r.Body, nil
+	}
+	
+	// If it is an HTML doc search for meta tags
+	if bytes.Equal([]byte(contentType), []byte("text/html")) {
+		url, err := searchHTMLMetaXRDS(r.Body)
+		if err != nil {
+			return nil, err
+		}
+		return Yadis(url)
+	}
+	
+	// If the response contain an X-XRDS-Location header
+	var xrds_location = r.Header.Get("X-Xrds-Location")
+	if len(xrds_location) > 0 {
+		return Yadis(xrds_location)
+	}
+
+	// If nothing is found try to parse it as a XRDS doc
+	return nil, nil
+}
+
+func YadisRequest (url string, method string) (resp *http.Response, err os.Error) {
+	resp = nil
+
+	var request = new(http.Request)
+	var client = new(http.Client)
+	var Header = make(http.Header)
+
+	request.Method = method
+	request.RawURL = url
+	
+	request.URL , err = http.ParseURL(url)
+	if err != nil {
+		return
+	}
+	
+	// Common parameters
+	request.Proto = "HTTP/1.0"
+	request.ProtoMajor = 1
+	request.ProtoMinor = 0
+	request.ContentLength = 0
+	request.Close = true
+
+
+	Header.Add("Accept", "application/xrds+xml")
+	request.Header = Header
+
+	// Follow a maximum of 5 redirections
+	for i := 0; i < 5; i++ {
+		response, err := client.Do(request)
+
+		if response.StatusCode == 301 || response.StatusCode == 302 || response.StatusCode == 303 || response.StatusCode == 307 {
+			location := response.Header.Get("Location")
+			request.RawURL = location
+			request.URL , err = http.ParseURL(location)
+			if err != nil {
+				return
+			}
+		} else {
+			return response, nil
+		}
+	}
+	return nil, os.ErrorString("Too many redirections")
+}
+
+func searchHTMLMetaXRDS(r io.Reader) (string, os.Error) {
 	parser := xml.NewParser(r)
 	var token xml.Token
 	var err os.Error
@@ -46,44 +129,4 @@ func searchHTMLMeta(r io.Reader) (string, os.Error) {
 		}
 	}
 	return "",os.ErrorString("Value not found")
-}
-
-func Yadis(url string) (io.Reader, os.Error) {
-	fmt.Printf("Search: %s\n",url)
-	headers := map[string] string {
-		"Accept": "application/xrds+xml",
-	}
-	r, err := get (url, headers)
-	if (err != nil || r == nil) {
-		fmt.Printf("Yadis: Error in GET\n")
-		return nil, err
-	}
-
-	// If it is an XRDS document, parse it and return URI
-	content, ok := r.Header["Content-Type"]
-	if ok && strings.HasPrefix(content, "application/xrds+xml") {
-		fmt.Printf("Document XRDS found\n")
-		return r.Body, nil
-	}
-	
-	// If it is an HTML doc search for meta tags
-	content, ok = r.Header["Content-Type"]
-	if ok && content == "text/html" {
-		fmt.Printf("Document HTML found\n")
-		url, err := searchHTMLMeta(r.Body)
-		if err != nil {
-			return nil, err
-		}
-		return Yadis(url)
-	}
-	
-
-	// If the response contain an X-XRDS-Location header
-	xrds, ok := r.Header["X-Xrds-Location"]
-	if ok {
-		return Yadis(xrds)
-	}
-
-	// If nothing is found try to parse it as a XRDS doc
-	return nil, nil
 }

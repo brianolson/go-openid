@@ -1,11 +1,10 @@
-include $(GOROOT)/src/Make.$(GOARCH)
+include $(GOROOT)/src/Make.inc
 
 TARG=openid
 GOFILES=\
-	openid.go\
-	yadis.go \
-	xrds.go \
-	http.go
+	authrequest.go\
+	xrds.go\
+	yadis.go
 
 include $(GOROOT)/src/Make.pkg
 

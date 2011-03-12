@@ -4,7 +4,7 @@ Go-OpenID
 About
 -----
 
-Go-OpenID is an implementation of OpenID in Golang.
+Go-OpenID is an implementation of OpenID authentication protocol in Golang.
 
 For now, the implementation does not manage XRI identifier, and can only check authentication with a direct request.
 
@@ -21,13 +21,14 @@ Install
 Usage
 -----
 
-        var o = new(openid.OpenID)
-        o.Identifier = "https://www.google.com/accounts/o8/id"
-        o.Realm = "http://example.com"
-        o.ReturnTo = "/loginCheck"
-        url := o.GetUrl()
+        url := openid.GetRedirectURL("Identifier", "http://www.realm.com", "/loginCheck")
 
-Now you have to redirect the user to the url returned. The OP will then forward the user back to you. To check the identity, do that:
+Now you have to redirect the user to the url returned. The OP will then forward the user back to you, after authenticating him.
+
+** What follows has been removed from the code because it was not compliant with newer go code.**
+** Please wait a bit or use git history **
+
+To check the identity, do that:
 
         var o = new(openid.OpenID)
         o.ParseRPUrl(URL)
