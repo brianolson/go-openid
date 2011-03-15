@@ -4,7 +4,8 @@ TARG=openid
 GOFILES=\
 	authrequest.go\
 	xrds.go\
-	yadis.go
+	yadis.go\
+	verify.go
 
 include $(GOROOT)/src/Make.pkg
 
