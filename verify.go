@@ -44,8 +44,8 @@ func Verify(url string) (grant bool, identifier string, err os.Error) {
 	return
 }
 
-var REVerifyDirectIsValid = "is_valid=true"
-var REVerifyDirectNs = regexp.MustCompile("ns=([^&]*)")
+var REVerifyDirectIsValid = "is_valid:true"
+var REVerifyDirectNs = regexp.MustCompile("ns:([a-zA-Z0-9:/.]*)")
 
 func verifyDirect(urlm map[string]string) (grant bool, err os.Error) {
 	grant = false
@@ -69,22 +69,20 @@ func verifyDirect(urlm map[string]string) (grant bool, err os.Error) {
 	}
 
 	// Parse the response
-	// Convert the reader -- Warning, response.ContentLength might be -1!!
-	buffer := make([]byte, response.ContentLength)
+	// Convert the reader
+	// We limit the size of the response to 1024 bytes but it should be large enough for most cases
+	buffer := make([]byte, 1024)
 	_, err = response.Body.Read(buffer)
 	if err != nil {
 		return false, err
 	}
 
 	// Check for ns
-	rematchs := REVerifyDirectNs.FindSubmatch(buffer)
-	if len(rematchs) < 1 {
+	rematch := REVerifyDirectNs.FindSubmatch(buffer)
+	if rematch == nil {
 		return false, os.ErrorString("verifyDirect: ns value not found on the response of the OP")
 	}
-	nsValue, err := http.URLUnescape(string(rematchs[1]))
-	if err != nil {
-		return false, err
-	}
+	nsValue := string(rematch[1])
 	if !bytes.Equal([]byte(nsValue), []byte("http://specs.openid.net/auth/2.0")) {
 		return false, os.ErrorString("verifyDirect: ns value not correct: " + nsValue)
 	}
