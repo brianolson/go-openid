@@ -12,11 +12,11 @@ import (
 // searchHTMLMetaXRDS Test
 
 type searchHTMLMetaXRDSTest struct {
-	in []byte
+	in  []byte
 	out string
 }
 
-var searchHTMLMetaXRDSTests = []searchHTMLMetaXRDSTest {
+var searchHTMLMetaXRDSTests = []searchHTMLMetaXRDSTest{
 	searchHTMLMetaXRDSTest{[]byte("<html><head><meta http-equiv='X-XRDS-Location' content='location'></meta></head></html>"), "location"},
 	//searchHTMLMetaXRDSTest{[]byte("<html><head><meta>location</meta></head></html>"), "location"},
 }
@@ -27,7 +27,7 @@ func TestSearchHTMLMetaXRDS(t *testing.T) {
 		if err != nil {
 			t.Errorf("searchHTMLMetaXRDS error: %s", err.String())
 		}
-		if ! bytes.Equal([]byte(content), []byte(l.out)) {
+		if !bytes.Equal([]byte(content), []byte(l.out)) {
 			t.Errorf("searchHTMLMetaXRDS(%s) = %s want %s.", l.in, content, l.out)
 		}
 	}
@@ -39,7 +39,7 @@ type YadisTest struct {
 	url string
 }
 
-var YadisTests = []YadisTest {
+var YadisTests = []YadisTest{
 	YadisTest{"https://www.google.com/accounts/o8/id"},
 	YadisTest{"http://orange.fr/"},
 	YadisTest{"http://yahoo.com/"},

@@ -17,7 +17,7 @@ import (
 
 func Yadis(ID string) (io.Reader, os.Error) {
 	r, err := YadisRequest(ID, "GET")
-	if (err != nil || r == nil) {
+	if err != nil || r == nil {
 		return nil, err
 	}
 
@@ -27,7 +27,7 @@ func Yadis(ID string) (io.Reader, os.Error) {
 	if strings.HasPrefix(contentType, "application/xrds+xml") {
 		return r.Body, nil
 	}
-	
+
 	// If it is an HTML doc search for meta tags
 	if bytes.Equal([]byte(contentType), []byte("text/html")) {
 		url, err := searchHTMLMetaXRDS(r.Body)
@@ -36,7 +36,7 @@ func Yadis(ID string) (io.Reader, os.Error) {
 		}
 		return Yadis(url)
 	}
-	
+
 	// If the response contain an X-XRDS-Location header
 	var xrds_location = r.Header.Get("X-Xrds-Location")
 	if len(xrds_location) > 0 {
@@ -47,7 +47,7 @@ func Yadis(ID string) (io.Reader, os.Error) {
 	return nil, nil
 }
 
-func YadisRequest (url string, method string) (resp *http.Response, err os.Error) {
+func YadisRequest(url string, method string) (resp *http.Response, err os.Error) {
 	resp = nil
 
 	var request = new(http.Request)
@@ -56,19 +56,18 @@ func YadisRequest (url string, method string) (resp *http.Response, err os.Error
 
 	request.Method = method
 	request.RawURL = url
-	
-	request.URL , err = http.ParseURL(url)
+
+	request.URL, err = http.ParseURL(url)
 	if err != nil {
 		return
 	}
-	
+
 	// Common parameters
 	request.Proto = "HTTP/1.0"
 	request.ProtoMajor = 1
 	request.ProtoMinor = 0
 	request.ContentLength = 0
 	request.Close = true
-
 
 	Header.Add("Accept", "application/xrds+xml")
 	request.Header = Header
@@ -80,7 +79,7 @@ func YadisRequest (url string, method string) (resp *http.Response, err os.Error
 		if response.StatusCode == 301 || response.StatusCode == 302 || response.StatusCode == 303 || response.StatusCode == 307 {
 			location := response.Header.Get("Location")
 			request.RawURL = location
-			request.URL , err = http.ParseURL(location)
+			request.URL, err = http.ParseURL(location)
 			if err != nil {
 				return
 			}
@@ -96,10 +95,10 @@ func searchHTMLMetaXRDS(r io.Reader) (string, os.Error) {
 	var token xml.Token
 	var err os.Error
 	for {
-		token, err = parser.Token();
-		if (token == nil || err != nil) {
+		token, err = parser.Token()
+		if token == nil || err != nil {
 			if err == os.EOF {
-				break;
+				break
 			}
 			return "", err
 		}
@@ -113,7 +112,7 @@ func searchHTMLMetaXRDS(r io.Reader) (string, os.Error) {
 				var httpEquivOK bool
 				contentE = false
 				httpEquivOK = false
-				for _,v := range token.(xml.StartElement).Attr {
+				for _, v := range token.(xml.StartElement).Attr {
 					if v.Name.Local == "http-equiv" && v.Value == "X-XRDS-Location" {
 						httpEquivOK = true
 					}
@@ -128,5 +127,5 @@ func searchHTMLMetaXRDS(r io.Reader) (string, os.Error) {
 			}
 		}
 	}
-	return "",os.ErrorString("Value not found")
+	return "", os.ErrorString("Value not found")
 }

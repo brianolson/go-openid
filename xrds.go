@@ -11,10 +11,10 @@ import (
 )
 
 type XRDSIdentifier struct {
-        XMLName xml.Name "Service"
-        Type []string
-        URI string
-        LocalID string
+	XMLName xml.Name "Service"
+	Type    []string
+	URI     string
+	LocalID string
 }
 type XRD struct {
 	XMLName xml.Name "XRD"
@@ -22,7 +22,7 @@ type XRD struct {
 }
 type XRDS struct {
 	XMLName xml.Name "XRDS"
-	XRD XRD
+	XRD     XRD
 }
 
 // Parse a XRDS document provided through a io.Reader
@@ -32,7 +32,7 @@ func ParseXRDS(r io.Reader) (string, string) {
 	err := xml.Unmarshal(r, XRDS)
 	if err != nil {
 		//fmt.Printf(err.String())
-                return "", ""
+		return "", ""
 	}
 	XRDSI := XRDS.XRD.Service
 
@@ -41,7 +41,7 @@ func ParseXRDS(r io.Reader) (string, string) {
 
 	//fmt.Printf("%v\n", XRDSI)
 
-	if StringTableContains(XRDSI.Type,"http://specs.openid.net/auth/2.0/server") {
+	if StringTableContains(XRDSI.Type, "http://specs.openid.net/auth/2.0/server") {
 		//fmt.Printf("OP Identifier Element found\n")
 		return XRDSI.URI, ""
 	} else if StringTableContains(XRDSI.Type, "http://specs.openid.net/auth/2.0/signon") {
@@ -52,8 +52,8 @@ func ParseXRDS(r io.Reader) (string, string) {
 }
 
 
-func StringTableContains (t []string, s string) bool {
-	for _,v := range t {
+func StringTableContains(t []string, s string) bool {
+	for _, v := range t {
 		if v == s {
 			return true
 		}

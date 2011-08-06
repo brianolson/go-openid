@@ -18,6 +18,10 @@ Install
 
 	git clone http://github.com/fduraffourg/go-openid.git && cd go-openid && make && make install
 
+or
+	goinstall github.com/fduraffourg/go-openid
+
+
 Usage
 -----
 
@@ -25,18 +29,10 @@ Usage
 
 Now you have to redirect the user to the url returned. The OP will then forward the user back to you, after authenticating him.
 
-** What follows has been removed from the code because it was not compliant with newer go code.**
-** Please wait a bit or use git history **
-
 To check the identity, do that:
 
-        var o = new(openid.OpenID)
-        o.ParseRPUrl(URL)
-        grant, err := o.Verify()
+   	 grant, id, err := openid.Verify(URL)
 
-grant is true if the user is authenticated, false otherwise. URL must contain the encoded content provided by the OP.
-
-Once o.ParseRPUrl(URL) is executed, all the information provided by the OP are in the map o.Params. For instance you get the identity with:
-
-     o.Params["openid.claimed_id"]
-
+URL is the url the user was redirected to.  grant will be true if the
+user was correctly authenticated, false otherwise.  If the user was
+authenticated, id contains its identifier.

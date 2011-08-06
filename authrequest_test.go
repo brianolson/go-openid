@@ -13,10 +13,10 @@ import (
 
 type NormalizeIdentifierTest struct {
 	in, out string
-	t int
+	t       int
 }
 
-var NormalizeIdentifierTests = []NormalizeIdentifierTest {
+var NormalizeIdentifierTests = []NormalizeIdentifierTest{
 	//NormalizeIdentifierTest{"example.com", "http://example.com/", IdentifierURL},
 	//NormalizeIdentifierTest{"http://example.com", "http://example.com/", IdentifierURL},
 	NormalizeIdentifierTest{"https://example.com/", "https://example.com/", IdentifierURL},
@@ -30,7 +30,7 @@ var NormalizeIdentifierTests = []NormalizeIdentifierTest {
 func TestNormalizeIdentifier(testing *testing.T) {
 	for _, nit := range NormalizeIdentifierTests {
 		v, t := NormalizeIdentifier(nit.in)
-		if ! bytes.Equal([]byte(v), []byte(nit.out)) || t != nit.t {
+		if !bytes.Equal([]byte(v), []byte(nit.out)) || t != nit.t {
 			testing.Errorf("NormalizeIdentifier(%s) = (%s, %d) want (%s, %d).", nit.in, v, t, nit.out, nit.t)
 		}
 	}
@@ -38,15 +38,16 @@ func TestNormalizeIdentifier(testing *testing.T) {
 
 // GetRedirectURL Test
 
-var Identifiers = []string {
+var Identifiers = []string{
 	"https://www.google.com/accounts/o8/id",
+	"orange.fr",
 	"yahoo.com",
 }
 
 // Just check that there is no errors returned by GetRedirectURL
-func TestGetRedirectURL ( t *testing.T) {
+func TestGetRedirectURL(t *testing.T) {
 	for _, url := range Identifiers {
-		_,err := GetRedirectURL(url, "http://example.com", "/loginCheck")
+		_, err := GetRedirectURL(url, "http://example.com", "/loginCheck")
 		if err != nil {
 			t.Errorf("GetRedirectURL() returned the error: %s", err.String())
 		}

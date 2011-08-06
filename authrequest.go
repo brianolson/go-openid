@@ -35,6 +35,9 @@ func GetRedirectURL(Identifier string, realm string, returnto string) (string, o
 		if err != nil {
 			return "", err
 		}
+		if reader == nil {
+			return "", os.ErrorString("Yadis returned an empty Reader for the ID: " + Id)
+		}
 
 		var endpoint, claimedid = ParseXRDS(reader)
 		if len(endpoint) == 0 {

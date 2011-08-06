@@ -41,6 +41,8 @@ func Verify(url string) (grant bool, identifier string, err os.Error) {
 		return
 	}
 
+	identifier = urlm["openid.claimed_id"]
+
 	return
 }
 
