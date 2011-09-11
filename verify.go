@@ -59,8 +59,6 @@ func VerifyValues(values url.Values) (grant bool, identifier string, err os.Erro
 
 	var postArgs url.Values
 	postArgs = url.Values(map[string][]string{})
-	//postArgs = new(http.Values)
-	postArgs.Set("openid.mode", "check_authentication")
 
 	// Create the url
 	URLEndPoint := values.Get("openid.op_endpoint")
@@ -74,6 +72,7 @@ func VerifyValues(values url.Values) (grant bool, identifier string, err os.Erro
 		}
 		postArgs[k] = v
 	}
+	postArgs.Set("openid.mode", "check_authentication")
 	postContent := postArgs.Encode()
 
 	// Post the request
@@ -85,6 +84,7 @@ func VerifyValues(values url.Values) (grant bool, identifier string, err os.Erro
 		return false, "", err
 	}
 
+/*
 	redirLimit := 3
 	for (redirLimit > 0) && (response.StatusCode == 301 || response.StatusCode == 302 || response.StatusCode == 303 || response.StatusCode == 307) {
 		location := response.Header.Get("Location")
@@ -95,6 +95,7 @@ func VerifyValues(values url.Values) (grant bool, identifier string, err os.Erro
 			return false, "", err
 		}
 	}
+*/
 
 	// Parse the response
 	// Convert the reader
@@ -123,6 +124,9 @@ func VerifyValues(values url.Values) (grant bool, identifier string, err os.Erro
 	}
 
 	identifier = values.Get("openid.claimed_id")
+	if !match {
+		log.Printf("no is_valid:true in \"%s\"", buffer)
+	}
 
 	return match, identifier, nil
 }

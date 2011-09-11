@@ -7,6 +7,8 @@
 // curl -o test_data/google_yadis.html --dump-header test_data/google_yadis.http --header "Accept: application/xrds+xml" 'https://www.google.com/accounts/o8/id'
 // curl -o test_data/orange_yadis.html --dump-header test_data/orange_yadis.http --header "Accept: application/xrds+xml" "http://www.orange.fr/"
 // curl -o test_data/yahoo_yadis.html --dump-header test_data/yahoo_yadis.http --header "Accept: application/xrds+xml" "http://www.yahoo.com/"
+// curl -o test_data/orange_xrds.html --dump-header test_data/orange_xrds.http --header "Accept: application/xrds+xml" "http://openid.orange.fr/xrds"
+// curl -o test_data/yahoo_xrds.html --dump-header test_data/yahoo_xrds.http --header "Accept: application/xrds+xml" "http://open.login.yahooapis.com/openid20/www.yahoo.com/xrds"
 // TODO: facebook? livejournal?
 
 
