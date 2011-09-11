@@ -23,8 +23,6 @@ func Verify(url_ string) (grant bool, identifier string, err os.Error) {
 	identifier = ""
 	err = nil
 
-	//var urlm map[string]string
-	//urlm, err = url2map(url)
 	var values url.Values
 	values, err = url.ParseQuery(url_)
 	if err != nil {
@@ -41,13 +39,6 @@ func Verify(url_ string) (grant bool, identifier string, err os.Error) {
 	// The signature on the assertion is valid and all fields that are required to be signed are signed (Section 11.4)
 
 	return VerifyValues(values)
-	//if err != nil {
-	//	return grant, identifier, err
-	//}
-
-	//identifier = urlm["openid.claimed_id"]
-
-	//return grant, identifier, err
 }
 
 var REVerifyDirectIsValid = "is_valid:true"
@@ -80,19 +71,6 @@ func VerifyValues(values url.Values) (grant bool, identifier string, err os.Erro
 		log.Printf("VerifyValues failed at post")
 		return false, "", err
 	}
-
-/*
-	redirLimit := 3
-	for (redirLimit > 0) && (response.StatusCode == 301 || response.StatusCode == 302 || response.StatusCode == 303 || response.StatusCode == 307) {
-		location := response.Header.Get("Location")
-		response, err = client.Get(location)
-		redirLimit -= 1
-		if err != nil {
-			log.Printf("Failed following redir \"%s\"\n", location)
-			return false, "", err
-		}
-	}
-*/
 
 	// Parse the response
 	// Convert the reader
@@ -127,46 +105,3 @@ func VerifyValues(values url.Values) (grant bool, identifier string, err os.Erro
 
 	return match, identifier, nil
 }
-
-// Transform an url string into a map of parameters/value
-/*
-func url2map(url_ string) (map[string]string, os.Error) {
-	pmap := make(map[string]string)
-	var start, end, eq, length int
-	var param, value string
-	var err os.Error
-
-	length = len(url_)
-	start = 0
-	for start < length && url_[start] != '?' {
-		start++
-	}
-	if start >= length {
-		start = -1
-	}
-	end = start
-	for end < length {
-		start = end + 1
-		eq = start
-		for eq < length && url_[eq] != '=' {
-			eq++
-		}
-		end = eq + 1
-		for end < length && url_[end] != '&' {
-			end++
-		}
-
-		param, err = url.QueryUnescape(url_[start:eq])
-		if err != nil {
-			return nil, err
-		}
-		value, err = url.QueryUnescape(url_[eq+1 : end])
-		if err != nil {
-			return nil, err
-		}
-
-		pmap[param] = value
-	}
-	return pmap, nil
-}
-*/
