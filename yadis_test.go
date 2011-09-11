@@ -2,6 +2,14 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Getting test data:
+// curl -o test_data/py_id.html --dump-header test_data/py_id.http 'http://localhost:8000/id/bob'
+// curl -o test_data/google_yadis.html --dump-header test_data/google_yadis.http 'https://www.google.com/accounts/o8/id'
+// curl -o test_data/orange_yadis.html --dump-header test_data/orange_yadis.http "http://orange.fr/"
+// curl -o test_data/yahoo_yadis.html --dump-header test_data/yahoo_yadis.http "http://yahoo.com/"
+// TODO: facebook? livejournal?
+
+
 package openid
 
 import (
@@ -18,6 +26,8 @@ type searchHTMLMetaXRDSTest struct {
 
 var searchHTMLMetaXRDSTests = []searchHTMLMetaXRDSTest{
 	searchHTMLMetaXRDSTest{[]byte("<html><head><meta http-equiv='X-XRDS-Location' content='location'></meta></head></html>"), "location"},
+	searchHTMLMetaXRDSTest{[]byte("<html><head><meta http-equiv='X-XRDS-Location' content='location'></head></html>"), "location"},
+	searchHTMLMetaXRDSTest{[]byte("<html><head><meta http-equiv=\"x-xrds-location\" content=\"location\"></head></html>"), "location"},
 	//searchHTMLMetaXRDSTest{[]byte("<html><head><meta>location</meta></head></html>"), "location"},
 }
 
@@ -59,3 +69,4 @@ func TestYadis(t *testing.T) {
 		}
 	}
 }
+

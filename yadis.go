@@ -78,6 +78,9 @@ func YadisRequest(url_ string, method string) (resp *http.Response, err os.Error
 	for i := 0; i < 5; i++ {
 		response, err := client.Do(request)
 
+		if err != nil {
+			return nil, err
+		}
 		if response.StatusCode == 301 || response.StatusCode == 302 || response.StatusCode == 303 || response.StatusCode == 307 {
 			location := response.Header.Get("Location")
 			request.RawURL = location
