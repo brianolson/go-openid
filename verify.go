@@ -67,9 +67,6 @@ func VerifyValues(values url.Values) (grant bool, identifier string, err os.Erro
 		return false, "", os.NewError("no openid.op_endpoint")
 	}
 	for k, v := range values {
-		if k == "openid.op_endpoint" {
-			continue // skip it
-		}
 		postArgs[k] = v
 	}
 	postArgs.Set("openid.mode", "check_authentication")
