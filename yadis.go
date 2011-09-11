@@ -8,8 +8,6 @@ import (
 	"os"
 	"http"
 	"url"
-	//"xml"
-	//"fmt"
 	"io"
 	"io/ioutil"
 	"bytes"
@@ -112,14 +110,17 @@ func YadisRequest(url_ string, method string) (resp *http.Response, err os.Error
 	return nil, os.NewError("Too many redirections")
 }
 
-// this is a ridiculous way to make a case insensitive pattern.
 var metaRE *regexp.Regexp
 var xrdsRE *regexp.Regexp
 
 func init() {
+	// These are ridiculous case insensitive pattern constructions.
+
+	// <[ \t]*meta[^>]*http-equiv=["']x-xrds-location["'][^>]*>
 	metaRE = regexp.MustCompile("<[ \t]*[mM][eE][tT][aA][^>]*[hH][tT][tT][pP]-[eE][qQ][uU][iI][vV]=[\"'][xX]-[xX][rR][dD][sS]-[lL][oO][cC][aA][tT][iI][oO][nN][\"'][^>]*>")
+
+	// content=["']([^"']+)["']
 	xrdsRE = regexp.MustCompile("[cC][oO][nN][tT][eE][nN][tT]=[\"']([^\"]+)[\"']")
-	//xrdsRE = regexp.MustCompile("content=[\"']([^\"']+)[\"']")
 }
 
 func searchHTMLMetaXRDS(r io.Reader) (string, os.Error) {
@@ -137,45 +138,3 @@ func searchHTMLMetaXRDS(r io.Reader) (string, os.Error) {
 	}
 	return string(content[1]), nil
 }
-
-/*
-func searchHTMLMetaXRDS_OLD(r io.Reader) (string, os.Error) {
-	parser := xml.NewParser(r)
-	var token xml.Token
-	var err os.Error
-	for {
-		token, err = parser.Token()
-		if token == nil || err != nil {
-			if err == os.EOF {
-				break
-			}
-			return "", err
-		}
-
-		switch token.(type) {
-		case xml.StartElement:
-			if token.(xml.StartElement).Name.Local == "meta" {
-				// Found a meta token. Verify that it is a X-XRDS-Location and return the content
-				var content string
-				var contentE bool
-				var httpEquivOK bool
-				contentE = false
-				httpEquivOK = false
-				for _, v := range token.(xml.StartElement).Attr {
-					if v.Name.Local == "http-equiv" && v.Value == "X-XRDS-Location" {
-						httpEquivOK = true
-					}
-					if v.Name.Local == "content" {
-						content = v.Value
-						contentE = true
-					}
-				}
-				if contentE && httpEquivOK {
-					return fmt.Sprint(content), nil
-				}
-			}
-		}
-	}
-	return "", os.NewError("Value not found")
-}
-*/
