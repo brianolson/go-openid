@@ -8,16 +8,21 @@ import (
 	"os"
 	"http"
 	"url"
-	"xml"
-	"fmt"
+	//"xml"
+	//"fmt"
 	"io"
 	"io/ioutil"
 	"bytes"
+	"log"
 	"regexp"
 	"strings"
 )
 
 func Yadis(ID string) (io.Reader, os.Error) {
+	return YadisVerbose(ID, nil)
+}
+
+func YadisVerbose(ID string, verbose *log.Logger) (io.Reader, os.Error) {
 	r, err := YadisRequest(ID, "GET")
 	if err != nil || r == nil {
 		return nil, err
@@ -27,6 +32,9 @@ func Yadis(ID string) (io.Reader, os.Error) {
 
 	// If it is an XRDS document, return the Reader
 	if strings.HasPrefix(contentType, "application/xrds+xml") {
+		if verbose != nil {
+			verbose.Printf("got xrds from \"%s\"", ID)
+		}
 		return r.Body, nil
 	}
 
@@ -36,15 +44,24 @@ func Yadis(ID string) (io.Reader, os.Error) {
 		if err != nil {
 			return nil, err
 		}
+		if verbose != nil {
+			verbose.Printf("fetching xrds found in html \"%s\"", url_)
+		}
 		return Yadis(url_)
 	}
 
 	// If the response contain an X-XRDS-Location header
 	var xrds_location = r.Header.Get("X-Xrds-Location")
 	if len(xrds_location) > 0 {
+		if verbose != nil {
+			verbose.Printf("fetching xrds found in http header \"%s\"", xrds_location)
+		}
 		return Yadis(xrds_location)
 	}
 
+	if verbose != nil {
+		verbose.Printf("Yadis fails out, nothing found. status=%#v", r.StatusCode)
+	}
 	// If nothing is found try to parse it as a XRDS doc
 	return nil, nil
 }
@@ -121,6 +138,7 @@ func searchHTMLMetaXRDS(r io.Reader) (string, os.Error) {
 	return string(content[1]), nil
 }
 
+/*
 func searchHTMLMetaXRDS_OLD(r io.Reader) (string, os.Error) {
 	parser := xml.NewParser(r)
 	var token xml.Token
@@ -160,3 +178,4 @@ func searchHTMLMetaXRDS_OLD(r io.Reader) (string, os.Error) {
 	}
 	return "", os.NewError("Value not found")
 }
+*/

@@ -85,6 +85,17 @@ func VerifyValues(values url.Values) (grant bool, identifier string, err os.Erro
 		return false, "", err
 	}
 
+	redirLimit := 3
+	for (redirLimit > 0) && (response.StatusCode == 301 || response.StatusCode == 302 || response.StatusCode == 303 || response.StatusCode == 307) {
+		location := response.Header.Get("Location")
+		response, err = client.Get(location)
+		redirLimit -= 1
+		if err != nil {
+			log.Printf("Failed following redir \"%s\"\n", location)
+			return false, "", err
+		}
+	}
+
 	// Parse the response
 	// Convert the reader
 	// We limit the size of the response to 1024 bytes but it should be large enough for most cases
@@ -117,6 +128,7 @@ func VerifyValues(values url.Values) (grant bool, identifier string, err os.Erro
 }
 
 // Transform an url string into a map of parameters/value
+/*
 func url2map(url_ string) (map[string]string, os.Error) {
 	pmap := make(map[string]string)
 	var start, end, eq, length int
@@ -156,3 +168,4 @@ func url2map(url_ string) (map[string]string, os.Error) {
 	}
 	return pmap, nil
 }
+*/
