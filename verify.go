@@ -5,6 +5,7 @@
 package openid
 
 import (
+	"log"
 	"os"
 	"http"
 	"regexp"
@@ -21,8 +22,10 @@ func Verify(url string) (grant bool, identifier string, err os.Error) {
 	identifier = ""
 	err = nil
 
-	var urlm map[string]string
-	urlm, err = url2map(url)
+	//var urlm map[string]string
+	//urlm, err = url2map(url)
+	var values http.Values
+	values, err = http.ParseQuery(url)
 	if err != nil {
 		return false, "", err
 	}
@@ -36,38 +39,49 @@ func Verify(url string) (grant bool, identifier string, err os.Error) {
 
 	// The signature on the assertion is valid and all fields that are required to be signed are signed (Section 11.4)
 
-	grant, err = verifyDirect(urlm)
-	if err != nil {
-		return
-	}
+	return VerifyValues(values)
+	//if err != nil {
+	//	return grant, identifier, err
+	//}
 
-	identifier = urlm["openid.claimed_id"]
+	//identifier = urlm["openid.claimed_id"]
 
-	return
+	//return grant, identifier, err
 }
 
 var REVerifyDirectIsValid = "is_valid:true"
 var REVerifyDirectNs = regexp.MustCompile("ns:([a-zA-Z0-9:/.]*)")
 
-func verifyDirect(urlm map[string]string) (grant bool, err os.Error) {
-	grant = false
+// Like Verify on a parsed URL
+func VerifyValues(values http.Values) (grant bool, identifier string, err os.Error) {
 	err = nil
 
-	urlm["openid.mode"] = "check_authentication"
+	var postArgs http.Values
+	postArgs = http.Values(map[string][]string{})
+	//postArgs = new(http.Values)
+	postArgs.Set("openid.mode", "check_authentication")
 
 	// Create the url
-	URLEndPoint := urlm["openid.op_endpoint"]
-	var postContent string
-	for k, v := range urlm {
-		postContent += http.URLEscape(k) + "=" + http.URLEscape(v) + "&"
+	URLEndPoint := values.Get("openid.op_endpoint")
+	if URLEndPoint == "" {
+		log.Printf("no openid.op_endpoint")
+		return false, "", os.NewError("no openid.op_endpoint")
 	}
+	for k, v := range values {
+		if k == "openid.op_endpoint" {
+			continue  // skip it
+		}
+		postArgs[k] = v
+	}
+	postContent := postArgs.Encode()
 
 	// Post the request
 	var client = new(http.Client)
 	postReader := bytes.NewBuffer([]byte(postContent))
 	response, err := client.Post(URLEndPoint, "application/x-www-form-urlencoded", postReader)
 	if err != nil {
-		return false, err
+		log.Printf("VerifyValues failed at post")
+		return false, "", err
 	}
 
 	// Parse the response
@@ -76,26 +90,29 @@ func verifyDirect(urlm map[string]string) (grant bool, err os.Error) {
 	buffer := make([]byte, 1024)
 	_, err = response.Body.Read(buffer)
 	if err != nil {
-		return false, err
+		log.Printf("VerifyValues failed reading response")
+		return false, "", err
 	}
 
 	// Check for ns
 	rematch := REVerifyDirectNs.FindSubmatch(buffer)
 	if rematch == nil {
-		return false, os.ErrorString("verifyDirect: ns value not found on the response of the OP")
+		return false, "", os.NewError("VerifyValues: ns value not found on the response of the OP")
 	}
 	nsValue := string(rematch[1])
 	if !bytes.Equal([]byte(nsValue), []byte("http://specs.openid.net/auth/2.0")) {
-		return false, os.ErrorString("verifyDirect: ns value not correct: " + nsValue)
+		return false, "", os.NewError("VerifyValues: ns value not correct: " + nsValue)
 	}
 
 	// Check for is_valid
 	match, err := regexp.Match(REVerifyDirectIsValid, buffer)
 	if err != nil {
-		return false, err
+		return false, "", err
 	}
 
-	return match, nil
+	identifier = values.Get("openid.claimed_id")
+
+	return match, identifier, nil
 }
 
 // Transform an url string into a map of parameters/value

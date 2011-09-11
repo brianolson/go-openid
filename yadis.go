@@ -10,7 +10,9 @@ import (
 	"xml"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"bytes"
+	"regexp"
 	"strings"
 )
 
@@ -87,10 +89,37 @@ func YadisRequest(url string, method string) (resp *http.Response, err os.Error)
 			return response, nil
 		}
 	}
-	return nil, os.ErrorString("Too many redirections")
+	return nil, os.NewError("Too many redirections")
 }
 
+// this is a ridiculous way to make a case insensitive pattern.
+var metaRE *regexp.Regexp
+var xrdsRE *regexp.Regexp
+
+func init() {
+metaRE = regexp.MustCompile("<[ \t]*[mM][eE][tT][aA][^>]*[hH][tT][tT][pP]-[eE][qQ][uU][iI][vV]=[\"'][xX]-[xX][rR][dD][sS]-[lL][oO][cC][aA][tT][iI][oO][nN][\"'][^>]*>")
+xrdsRE = regexp.MustCompile("[cC][oO][nN][tT][eE][nN][tT]=[\"']([^\"]+)[\"']")
+//xrdsRE = regexp.MustCompile("content=[\"']([^\"']+)[\"']")
+}
+
+
 func searchHTMLMetaXRDS(r io.Reader) (string, os.Error) {
+	data, err := ioutil.ReadAll(r)
+	if err != nil {
+		return "", err
+	}
+	part := metaRE.Find(data)
+	if part == nil {
+		return "", os.NewError("No -meta- match")
+	}
+	content := xrdsRE.FindSubmatch(part)
+	if content == nil {
+		return "", os.NewError("No content in meta tag: " + string(part))
+	}
+	return string(content[1]), nil
+}
+
+func searchHTMLMetaXRDS_OLD(r io.Reader) (string, os.Error) {
 	parser := xml.NewParser(r)
 	var token xml.Token
 	var err os.Error
@@ -127,5 +156,5 @@ func searchHTMLMetaXRDS(r io.Reader) (string, os.Error) {
 			}
 		}
 	}
-	return "", os.ErrorString("Value not found")
+	return "", os.NewError("Value not found")
 }
