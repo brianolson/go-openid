@@ -7,6 +7,7 @@ package openid
 import (
 	"os"
 	"http"
+	"url"
 	"xml"
 	"fmt"
 	"io"
@@ -15,7 +16,6 @@ import (
 	"regexp"
 	"strings"
 )
-
 
 func Yadis(ID string) (io.Reader, os.Error) {
 	r, err := YadisRequest(ID, "GET")
@@ -32,11 +32,11 @@ func Yadis(ID string) (io.Reader, os.Error) {
 
 	// If it is an HTML doc search for meta tags
 	if bytes.Equal([]byte(contentType), []byte("text/html")) {
-		url, err := searchHTMLMetaXRDS(r.Body)
+		url_, err := searchHTMLMetaXRDS(r.Body)
 		if err != nil {
 			return nil, err
 		}
-		return Yadis(url)
+		return Yadis(url_)
 	}
 
 	// If the response contain an X-XRDS-Location header
@@ -49,7 +49,7 @@ func Yadis(ID string) (io.Reader, os.Error) {
 	return nil, nil
 }
 
-func YadisRequest(url string, method string) (resp *http.Response, err os.Error) {
+func YadisRequest(url_ string, method string) (resp *http.Response, err os.Error) {
 	resp = nil
 
 	var request = new(http.Request)
@@ -57,9 +57,9 @@ func YadisRequest(url string, method string) (resp *http.Response, err os.Error)
 	var Header = make(http.Header)
 
 	request.Method = method
-	request.RawURL = url
+	request.RawURL = url_
 
-	request.URL, err = http.ParseURL(url)
+	request.URL, err = url.Parse(url_)
 	if err != nil {
 		return
 	}
@@ -81,7 +81,7 @@ func YadisRequest(url string, method string) (resp *http.Response, err os.Error)
 		if response.StatusCode == 301 || response.StatusCode == 302 || response.StatusCode == 303 || response.StatusCode == 307 {
 			location := response.Header.Get("Location")
 			request.RawURL = location
-			request.URL, err = http.ParseURL(location)
+			request.URL, err = url.Parse(location)
 			if err != nil {
 				return
 			}
@@ -97,11 +97,10 @@ var metaRE *regexp.Regexp
 var xrdsRE *regexp.Regexp
 
 func init() {
-metaRE = regexp.MustCompile("<[ \t]*[mM][eE][tT][aA][^>]*[hH][tT][tT][pP]-[eE][qQ][uU][iI][vV]=[\"'][xX]-[xX][rR][dD][sS]-[lL][oO][cC][aA][tT][iI][oO][nN][\"'][^>]*>")
-xrdsRE = regexp.MustCompile("[cC][oO][nN][tT][eE][nN][tT]=[\"']([^\"]+)[\"']")
-//xrdsRE = regexp.MustCompile("content=[\"']([^\"']+)[\"']")
+	metaRE = regexp.MustCompile("<[ \t]*[mM][eE][tT][aA][^>]*[hH][tT][tT][pP]-[eE][qQ][uU][iI][vV]=[\"'][xX]-[xX][rR][dD][sS]-[lL][oO][cC][aA][tT][iI][oO][nN][\"'][^>]*>")
+	xrdsRE = regexp.MustCompile("[cC][oO][nN][tT][eE][nN][tT]=[\"']([^\"]+)[\"']")
+	//xrdsRE = regexp.MustCompile("content=[\"']([^\"']+)[\"']")
 }
-
 
 func searchHTMLMetaXRDS(r io.Reader) (string, os.Error) {
 	data, err := ioutil.ReadAll(r)

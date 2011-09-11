@@ -10,6 +10,7 @@ import (
 	"http"
 	"regexp"
 	"bytes"
+	"url"
 )
 
 // Verify that the url given match a successfull authentication
@@ -17,15 +18,15 @@ import (
 // * true if authenticated, false otherwise
 // * The Claimed identifier if authenticated
 // * Eventually an error
-func Verify(url string) (grant bool, identifier string, err os.Error) {
+func Verify(url_ string) (grant bool, identifier string, err os.Error) {
 	grant = false
 	identifier = ""
 	err = nil
 
 	//var urlm map[string]string
 	//urlm, err = url2map(url)
-	var values http.Values
-	values, err = http.ParseQuery(url)
+	var values url.Values
+	values, err = url.ParseQuery(url_)
 	if err != nil {
 		return false, "", err
 	}
@@ -53,11 +54,11 @@ var REVerifyDirectIsValid = "is_valid:true"
 var REVerifyDirectNs = regexp.MustCompile("ns:([a-zA-Z0-9:/.]*)")
 
 // Like Verify on a parsed URL
-func VerifyValues(values http.Values) (grant bool, identifier string, err os.Error) {
+func VerifyValues(values url.Values) (grant bool, identifier string, err os.Error) {
 	err = nil
 
-	var postArgs http.Values
-	postArgs = http.Values(map[string][]string{})
+	var postArgs url.Values
+	postArgs = url.Values(map[string][]string{})
 	//postArgs = new(http.Values)
 	postArgs.Set("openid.mode", "check_authentication")
 
@@ -69,7 +70,7 @@ func VerifyValues(values http.Values) (grant bool, identifier string, err os.Err
 	}
 	for k, v := range values {
 		if k == "openid.op_endpoint" {
-			continue  // skip it
+			continue // skip it
 		}
 		postArgs[k] = v
 	}
@@ -116,15 +117,15 @@ func VerifyValues(values http.Values) (grant bool, identifier string, err os.Err
 }
 
 // Transform an url string into a map of parameters/value
-func url2map(url string) (map[string]string, os.Error) {
+func url2map(url_ string) (map[string]string, os.Error) {
 	pmap := make(map[string]string)
 	var start, end, eq, length int
 	var param, value string
 	var err os.Error
 
-	length = len(url)
+	length = len(url_)
 	start = 0
-	for start < length && url[start] != '?' {
+	for start < length && url_[start] != '?' {
 		start++
 	}
 	if start >= length {
@@ -134,19 +135,19 @@ func url2map(url string) (map[string]string, os.Error) {
 	for end < length {
 		start = end + 1
 		eq = start
-		for eq < length && url[eq] != '=' {
+		for eq < length && url_[eq] != '=' {
 			eq++
 		}
 		end = eq + 1
-		for end < length && url[end] != '&' {
+		for end < length && url_[end] != '&' {
 			end++
 		}
 
-		param, err = http.URLUnescape(url[start:eq])
+		param, err = url.QueryUnescape(url_[start:eq])
 		if err != nil {
 			return nil, err
 		}
-		value, err = http.URLUnescape(url[eq+1 : end])
+		value, err = url.QueryUnescape(url_[eq+1 : end])
 		if err != nil {
 			return nil, err
 		}

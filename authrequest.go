@@ -8,7 +8,7 @@ import (
 	"strings"
 	"io"
 	"os"
-	"http"
+	"url"
 )
 
 const (
@@ -16,7 +16,6 @@ const (
 	IdentifierXRI
 	IdentifierURL
 )
-
 
 func GetRedirectURL(Identifier string, realm string, returnto string) (string, os.Error) {
 	var err os.Error
@@ -97,11 +96,11 @@ func CreateAuthenticationRequest(OPEndPoint, ClaimedID, Realm, ReturnTo string) 
 	p["openid.return_to"] = Realm + ReturnTo
 	p["openid.realm"] = Realm
 
-	var url string
-	url = OPEndPoint + "?"
+	var url_ string
+	url_ = OPEndPoint + "?"
 
 	for k, v := range p {
-		url += http.URLEscape(k) + "=" + http.URLEscape(v) + "&"
+		url_ += url.QueryEscape(k) + "=" + url.QueryEscape(v) + "&"
 	}
-	return url
+	return url_
 }
